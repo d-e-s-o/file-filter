@@ -24,6 +24,7 @@ from argparse import (
 )
 from sys import (
   argv as sysargv,
+  stdin,
 )
 
 
@@ -49,13 +50,25 @@ def main(argv):
     "files", action="store", default=[], nargs="*",
     help="A list of files to filter.",
   )
+  parser.add_argument(
+    "--stdin", action="store_true", default=False,
+    help="Read file names from stdin and not from the argument list supplied.",
+  )
   ns = parser.parse_args(argv[1:])
+
+  if ns.stdin:
+    files = stdin.read().splitlines()
+    joiner = "\n"
+  else:
+    files = ns.files
+    joiner = " "
+
   files = [f for f in ns.files if isPythonFile(f)]
 
   if files is []:
     return 1
 
-  print(" ".join(files))
+  print(joiner.join(files))
   return 0
 
 
