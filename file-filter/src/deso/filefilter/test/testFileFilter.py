@@ -1,7 +1,7 @@
 # testFileFilter.py
 
 #/***************************************************************************
-# *   Copyright (C) 2016 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2016-2017 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -51,33 +51,45 @@ FILE_FILTER = realpath(join(dirname(__file__), pardir, "file-filter.py"))
 
 class TestFileFilter(TestCase):
   """A test case for testing of the file-filter functionality."""
+  def doTest(self, file_type, use_stdin, indices):
+    """Perform the filtering test."""
+    with NamedTemporaryFile(buffering=0) as file0,\
+         NamedTemporaryFile(buffering=0, suffix="%spy" % extsep) as file1,\
+         NamedTemporaryFile(buffering=0, suffix="%sh" % extsep) as file2,\
+         NamedTemporaryFile(buffering=0, suffix="%srs" % extsep) as file3,\
+         NamedTemporaryFile(buffering=0) as file4,\
+         NamedTemporaryFile(buffering=0, suffix="%sbin" % extsep) as file5:
+      # We leave 'file0' empty.
+      file1.write(b"pass")
+      file2.write(bytes("// %s" % file3.name, "utf-8"))
+      file3.write(bytes("#!/usr/bin/rustc", "utf-8"))
+      file4.write(bytes("#!%s" % executable, "utf-8"))
+      file5.write(bytes("".join(chr(randint(0, 255)) for _ in range(512)), "utf-8"))
+
+      files = [file0.name, file1.name, file2.name, file3.name, file4.name, file5.name]
+      if use_stdin:
+        stdin = "\n".join(files).encode()
+        joiner = "\n"
+        out, _ = execute(executable, FILE_FILTER, file_type, "--stdin", stdin=stdin, stdout=b"")
+      else:
+        joiner = " "
+        out, _ = execute(executable, FILE_FILTER, file_type, *files, stdout=b"")
+
+      expected = joiner.join(map(lambda i: files[i], indices))
+      self.assertEqual(out.decode("utf-8")[:-1], expected)
+
+
   def testPythonFileFiltering(self):
     """Verify filtering of Python files provided as arguments works as expected."""
-    def doTest(use_stdin):
-      """Perform the filtering test."""
-      with NamedTemporaryFile(buffering=0) as file1,\
-           NamedTemporaryFile(buffering=0, suffix="%spy" % extsep) as file2,\
-           NamedTemporaryFile(buffering=0, suffix="%sh" % extsep) as file3,\
-           NamedTemporaryFile(buffering=0) as file4,\
-           NamedTemporaryFile(buffering=0, suffix="%sbin" % extsep) as file5:
-        # We leave 'file1' empty.
-        file2.write(b"pass")
-        file3.write(bytes("// %s" % file3.name, "utf-8"))
-        file4.write(bytes("#!%s" % executable, "utf-8"))
-        file5.write(bytes("".join(chr(randint(0, 255)) for _ in range(512)), "utf-8"))
+    for use_stdin in (False, True):
+      # Only files 1 & 4 should be recognized as Python files.
+      self.doTest("--python", use_stdin, [1, 4])
 
-        files = [file1.name, file2.name, file3.name, file4.name, file5.name]
-        if use_stdin:
-          out, _ = execute(executable, FILE_FILTER, stdin=b"\n".join(files), stdout=b"")
-        else:
-          out, _ = execute(executable, FILE_FILTER, *files, stdout=b"")
 
-        # Only file2 and file4 should be recognized as Python files.
-        expected = " ".join([file2.name, file4.name])
-        self.assertEqual(out.decode("utf-8")[:-1], expected)
-
-      for use_stdin in (False, True):
-        doTest(use_stdin)
+  def testRustFileFiltering(self):
+    """Verify filtering of Rust files provided as arguments works as expected."""
+    for use_stdin in (False, True):
+      self.doTest("--rust", use_stdin, [3])
 
 
 if __name__ == "__main__":

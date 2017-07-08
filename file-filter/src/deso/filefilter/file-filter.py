@@ -43,12 +43,28 @@ def isPythonFile(file_):
   return file_.endswith("py") or hasPythonShebang(file_)
 
 
+def isRustFile(file_):
+  """Check whether a file is a Rust file or not."""
+  return file_.endswith("rs")
+
+
 def main(argv):
   """Filter specific files out of a list of arbitrary files."""
   parser = ArgumentParser()
+  # By default we perform no filtering at all.
+  parser.set_defaults(filter_=lambda x: True)
+
   parser.add_argument(
     "files", action="store", default=[], nargs="*",
     help="A list of files to filter.",
+  )
+  parser.add_argument(
+    "--python", action="store_const", const=isPythonFile, dest="filter_",
+    help="Filter out Python files.",
+  )
+  parser.add_argument(
+    "--rust", action="store_const", const=isRustFile, dest="filter_",
+    help="Filter out Rust files.",
   )
   parser.add_argument(
     "--stdin", action="store_true", default=False,
@@ -63,7 +79,7 @@ def main(argv):
     files = ns.files
     joiner = " "
 
-  files = [f for f in ns.files if isPythonFile(f)]
+  files = [f for f in files if ns.filter_(f)]
 
   if files is []:
     return 1
