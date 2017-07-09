@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #/***************************************************************************
-# *   Copyright (C) 2016 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2016-2017 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -24,6 +24,7 @@ from argparse import (
 )
 from sys import (
   argv as sysargv,
+  stderr,
   stdin,
 )
 
@@ -70,6 +71,10 @@ def main(argv):
     "--stdin", action="store_true", default=False,
     help="Read file names from stdin and not from the argument list supplied.",
   )
+  parser.add_argument(
+    "-v", "--verbose", action="store_true", default=False,
+    help="Print output files.",
+  )
   ns = parser.parse_args(argv[1:])
 
   if ns.stdin:
@@ -83,6 +88,9 @@ def main(argv):
 
   if files is []:
     return 1
+
+  if ns.verbose:
+    print("Files: %s" % ", ".join(files), file=stderr)
 
   print(joiner.join(files))
   return 0
