@@ -1,7 +1,7 @@
 # testFileFilter.py
 
 #/***************************************************************************
-# *   Copyright (C) 2016-2017 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2016-2018 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,11 @@ from deso.execute import (
 from os import (
   extsep,
   pardir,
+  symlink,
+  unlink,
 )
 from os.path import (
+  devnull,
   dirname,
   join,
   realpath,
@@ -43,6 +46,7 @@ from sys import (
 )
 from tempfile import (
   NamedTemporaryFile,
+  TemporaryDirectory,
 )
 
 
@@ -58,7 +62,8 @@ class TestFileFilter(TestCase):
          NamedTemporaryFile(buffering=0, suffix="%sh" % extsep) as file2,\
          NamedTemporaryFile(buffering=0, suffix="%srs" % extsep) as file3,\
          NamedTemporaryFile(buffering=0) as file4,\
-         NamedTemporaryFile(buffering=0, suffix="%sbin" % extsep) as file5:
+         NamedTemporaryFile(buffering=0, suffix="%sbin" % extsep) as file5,\
+         TemporaryDirectory() as dir_:
       # We leave 'file0' empty.
       file1.write(b"pass")
       file2.write(bytes("// %s" % file3.name, "utf-8"))
@@ -66,7 +71,10 @@ class TestFileFilter(TestCase):
       file4.write(bytes("#!%s" % executable, "utf-8"))
       file5.write(bytes("".join(chr(randint(0, 255)) for _ in range(512)), "utf-8"))
 
-      files = [file0.name, file1.name, file2.name, file3.name, file4.name, file5.name]
+      link = join(dir_, "link.rs")
+      symlink(devnull, link)
+
+      files = [file0.name, file1.name, file2.name, file3.name, file4.name, file5.name, dir_, link]
       if use_stdin:
         stdin = "\n".join(files).encode()
         joiner = "\n"

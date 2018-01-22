@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #/***************************************************************************
-# *   Copyright (C) 2016-2017 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2016-2018 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -22,11 +22,20 @@
 from argparse import (
   ArgumentParser,
 )
+from os.path import (
+  isdir,
+  islink,
+)
 from sys import (
   argv as sysargv,
   stderr,
   stdin,
 )
+
+
+def isFile(path):
+  """Check whether a path represents a regular file."""
+  return not isdir(path) and not islink(path)
 
 
 def hasPythonShebang(file_):
@@ -38,15 +47,14 @@ def hasPythonShebang(file_):
     except (StopIteration, UnicodeDecodeError):
       return False
 
-
 def isPythonFile(file_):
   """Check whether a file is a Python file or not."""
-  return file_.endswith("py") or hasPythonShebang(file_)
+  return isFile(file_) and (file_.endswith("py") or hasPythonShebang(file_))
 
 
 def isRustFile(file_):
   """Check whether a file is a Rust file or not."""
-  return file_.endswith("rs")
+  return isFile(file_) and file_.endswith("rs")
 
 
 def main(argv):
